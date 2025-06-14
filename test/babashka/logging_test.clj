@@ -31,7 +31,12 @@
      (timbre/with-level :debug
        (test-fn))
 
-     (timbre/set-level! :debug)
+     (timbre/set-level! :no-crash)
+     (def x (atom nil))
+     (try (timbre/set-min-level! :crash)
+          (catch Exception _ (reset! x :crash)))
+     (assert (= :crash @x))
+     (timbre/set-min-level! :debug)
      (println "after setting log level to :debug")
      (test-fn)
 
@@ -73,6 +78,10 @@
                      program)
           res       (slurp temp-file)]
       (is (str/includes? res "hello")))))
+
+(deftest timbre-spy-test
+  (let [res (tu/bb nil (pr-str '(taoensso.timbre/spy :foo)))]
+    (is (str/includes? res ":foo => :foo"))))
 
 (def readable-prog
   '(do
