@@ -7,22 +7,41 @@ A preview of the next release can be installed from
 
 [Babashka](https://github.com/babashka/babashka): Native, fast starting Clojure interpreter for scripting
 
-## Unreleased
+## 1.12.202 (2025-06-15)
 
+- Support `clojure.lang.Var/{get,clone,reset}ThreadBindingFrame` for JVM Clojure compatibility
+- [#1741](https://github.com/babashka/babashka/issues/1741): fix `taoensso.timbre/spy` and include test
+- Add `taoensso.timbre/set-ns-min-level!` and `taoensso.timbre/set-ns-min-level`
+
+## 1.12.201 (2025-06-12)
+
+- [#1825](https://github.com/babashka/babashka/issues/1825): Add [Nextjournal Markdown](https://github.com/nextjournal/markdown) as built-in Markdown library
+- Promesa compatibility (pending PR [here](https://github.com/funcool/promesa/pull/160))
 - Upgrade clojure to `1.12.1`
 - [#1818](https://github.com/babashka/babashka/issues/1818): wrong argument order in `clojure.java.io/resource` implementation
 - Add `java.text.BreakIterator`
-- Bump `fs` to `0.5.25`
+- Add classes for compatibility with [promesa](https://github.com/funcool/promesa):
+  - `java.lang.Thread$Builder$OfPlatform`
+  - `java.util.concurrent.ForkJoinPool`
+  - `java.util.concurrent.ForkJoinPool$ForkJoinWorkerThreadFactory`
+  - `java.util.concurrent.ForkJoinWorkerThread`
+  - `java.util.concurrent.SynchronousQueue`
+- Add `taoensso.timbre/set-min-level!`
+- Add `taoensso.timbre/set-config!`
+- Bump `fs` to `0.5.26`
 - Bump `jsoup` to `1.20.1`
 - Bump `edamame` to `1.4.30`
+- Bump `taoensso.timbre` to `6.7.0`
+- Bump `pods`: more graceful error handling when pod quits unexpectedly
 - [#1815](https://github.com/babashka/babashka/issues/1815): Make install-script wget-compatible ([@eval](https://github.com/eval))
-- [#1822](https://github.com/babashka/babashka/issues/1822): type should prioritize :type metadata
+- [#1822](https://github.com/babashka/babashka/issues/1822): `type` should prioritize `:type` metadata
 - `ns-name` should work on symbols
 - `:clojure.core/eval-file` should affect `*file*` during eval
 - [#1179](https://github.com/babashka/babashka/issues/1179): run `:init` in tasks only once
 - [#1823](https://github.com/babashka/babashka/issues/1823): run `:init` in tasks before task specific requires
 - Fix `resolve` when `*ns*` is bound to symbol
-- Bump `deps.clj` to `1.12.1.1543`
+- Bump `deps.clj` to `1.12.1.1550`
+- Bump `http-client` to `0.4.23`
 
 ## 1.12.200 (2025-04-26)
 

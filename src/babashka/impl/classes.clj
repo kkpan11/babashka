@@ -6,7 +6,8 @@
    [cheshire.core :as json]
    [clojure.core.async]
    [sci.core :as sci]
-   [sci.impl.types :as t]))
+   [sci.impl.types :as t]
+   [sci.impl.vars :as vars]))
 
 (set! *warn-on-reflection* true)
 
@@ -259,6 +260,10 @@
   (try (Class/forName "java.lang.Thread$Builder")
        (catch Exception _ nil)))
 
+(def thread-builder-of-platform
+  (try (Class/forName "java.lang.Thread$Builder$OfPlatform")
+       (catch Exception _ nil)))
+
 (def classes
   `{:all [clojure.lang.ArityException
           clojure.lang.BigInt
@@ -304,6 +309,7 @@
           java.lang.Appendable
           java.lang.ArithmeticException
           java.lang.AssertionError
+          java.lang.AutoCloseable
           java.lang.Boolean
           java.lang.Byte
           java.lang.Character
@@ -345,7 +351,8 @@
           java.lang.ThreadLocal
           java.lang.Thread$UncaughtExceptionHandler
           ~@(when thread-builder
-              '[java.lang.Thread$Builder])
+              '[java.lang.Thread$Builder
+                java.lang.Thread$Builder$OfPlatform])
           java.lang.UnsupportedOperationException
           java.lang.ref.WeakReference
           java.lang.ref.ReferenceQueue
@@ -505,8 +512,12 @@
           java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy
           java.util.concurrent.ThreadPoolExecutor$DiscardOldestPolicy
           java.util.concurrent.ThreadPoolExecutor$DiscardPolicy
+          java.util.concurrent.TimeoutException
           java.util.concurrent.ExecutorService
           java.util.concurrent.ScheduledExecutorService
+          java.util.concurrent.ForkJoinPool
+          java.util.concurrent.ForkJoinPool$ForkJoinWorkerThreadFactory
+          java.util.concurrent.ForkJoinWorkerThread
           java.util.concurrent.Future
           java.util.concurrent.FutureTask
           java.util.concurrent.CompletableFuture
@@ -516,6 +527,7 @@
           java.util.concurrent.locks.ReentrantLock
           java.util.concurrent.ThreadLocalRandom
           java.util.concurrent.ConcurrentHashMap
+          java.util.concurrent.SynchronousQueue
           java.util.jar.Attributes
           java.util.jar.Attributes$Name
           java.util.jar.JarFile
@@ -687,7 +699,6 @@
                       java.lang.VirtualMachineError
                       java.lang.NoSuchFieldException
                       java.sql.Timestamp
-                      java.util.concurrent.TimeoutException
                       java.util.Collection
                       java.util.Map$Entry
                       java.util.AbstractMap
@@ -705,15 +716,16 @@
                         (:instance-checks classes))
         m (apply hash-map
                  (for [c classes
-                       c [(list 'quote c) (cond-> `{:class ~c}
-                                            (= 'java.lang.Class c)
-                                            (assoc :static-methods
-                                                   {(list 'quote 'forName)
-                                                    `(fn
-                                                       ([_# ^String class-name#]
-                                                        (Class/forName class-name#))
-                                                       ([_# ^String class-name# initialize# ^java.lang.ClassLoader clazz-loader#]
-                                                        (Class/forName class-name#)))}))]]
+                       c [(list 'quote c)
+                          (cond-> `{:class ~c}
+                            (= 'java.lang.Class c)
+                            (assoc :static-methods
+                                   {(list 'quote 'forName)
+                                    `(fn
+                                       ([_# ^String class-name#]
+                                        (Class/forName class-name#))
+                                       ([_# ^String class-name# initialize# ^java.lang.ClassLoader clazz-loader#]
+                                        (Class/forName class-name#)))}))]]
                    c))
         m (assoc m :public-class
                  (fn [v]
@@ -822,6 +834,9 @@
                                    java.lang.Throwable
                                    (instance? org.jsoup.nodes.Element v)
                                    org.jsoup.nodes.Element
+                                   (and thread-builder-of-platform
+                                        (instance? thread-builder-of-platform v))
+                                   thread-builder-of-platform
                                    (and thread-builder
                                         (instance? thread-builder v))
                                    thread-builder
@@ -831,7 +846,14 @@
                                    ,)]
                      ;; (prn :res res)
                      res)))
-        m (assoc m (list 'quote 'clojure.lang.Var) 'sci.lang.Var)
+        m (assoc m (list 'quote 'clojure.lang.Var)
+                 {:class 'sci.lang.Var
+                  :static-methods {(list 'quote 'cloneThreadBindingFrame) `(fn [_#]
+                                                                             (vars/clone-thread-binding-frame))
+                                   (list 'quote 'resetThreadBindingFrame) `(fn [_# frame#]
+                                                                             (vars/reset-thread-binding-frame frame#))
+                                   (list 'quote 'getThreadBindingFrame) `(fn [_#]
+                                                                           (vars/get-thread-binding-frame))}})
         m (assoc m (list 'quote 'clojure.lang.Namespace) 'sci.lang.Namespace)]
     m))
 
@@ -840,6 +862,8 @@
   "This contains mapping of symbol to class of all classes that are
   allowed to be initialized at build time."
   (gen-class-map))
+
+;; (prn :class-map* class-map*)
 
 #_(let [class-name (str c)]
     (cond-> (Class/forName class-name)
